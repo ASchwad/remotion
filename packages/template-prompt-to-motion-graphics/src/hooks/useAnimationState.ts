@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useCodeCompiler, CompilationResult } from "./useCodeCompiler";
+import { compileCode as compile } from "./codeCompiler";
 
 export interface AnimationState {
   code: string;
@@ -11,7 +11,6 @@ export interface AnimationState {
 }
 
 export function useAnimationState(initialCode: string = "") {
-  const { compile } = useCodeCompiler();
   const [state, setState] = useState<AnimationState>({
     code: initialCode,
     Component: null,
@@ -20,21 +19,18 @@ export function useAnimationState(initialCode: string = "") {
   });
 
   // Compile code when it changes (with debouncing handled by caller)
-  const compileCode = useCallback(
-    (code: string) => {
-      setState((prev) => ({ ...prev, isCompiling: true }));
+  const compileCode = useCallback((code: string) => {
+    setState((prev) => ({ ...prev, isCompiling: true }));
 
-      const result: CompilationResult = compile(code);
+    const result = compile(code);
 
-      setState((prev) => ({
-        ...prev,
-        Component: result.Component,
-        error: result.error,
-        isCompiling: false,
-      }));
-    },
-    [compile]
-  );
+    setState((prev) => ({
+      ...prev,
+      Component: result.Component,
+      error: result.error,
+      isCompiling: false,
+    }));
+  }, []);
 
   // Update code and trigger compilation
   const setCode = useCallback((newCode: string) => {
