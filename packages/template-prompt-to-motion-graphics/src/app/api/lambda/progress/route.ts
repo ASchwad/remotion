@@ -1,9 +1,8 @@
 import {
-  speculateFunctionName,
   AwsRegion,
   getRenderProgress,
 } from "@remotion/lambda/client";
-import { DISK, RAM, REGION, TIMEOUT } from "../../../../../config.mjs";
+import { Resource } from "sst";
 import { ProgressResponse, ProgressRequest } from "../../../../../types/schema";
 import { executeApi } from "../../../../helpers/api-response";
 
@@ -12,12 +11,8 @@ export const POST = executeApi<ProgressResponse, typeof ProgressRequest>(
   async (req, body) => {
     const renderProgress = await getRenderProgress({
       bucketName: body.bucketName,
-      functionName: speculateFunctionName({
-        diskSizeInMb: DISK,
-        memorySizeInMb: RAM,
-        timeoutInSeconds: TIMEOUT,
-      }),
-      region: REGION as AwsRegion,
+      functionName: Resource.Remotion.functionName,
+      region: Resource.Remotion.region as AwsRegion,
       renderId: body.id,
     });
 

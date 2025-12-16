@@ -16,6 +16,7 @@ import { useAnimationState } from "../../hooks/useAnimationState";
 import { CodeEditor } from "../../components/CodeEditor";
 import { AnimationPlayer } from "../../components/AnimationPlayer";
 import { Header } from "../../components/Header";
+import { RenderingProvider } from "../../context/RenderingContext";
 
 function DemoPageContent() {
   const searchParams = useSearchParams();
@@ -31,6 +32,8 @@ function DemoPageContent() {
   }, [searchParams]);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [durationInFrames, setDurationInFrames] = useState(selectedExample.durationInFrames);
+  const [fps, setFps] = useState(selectedExample.fps);
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
 
   const { code, Component, error, isCompiling, setCode, compileCode } =
@@ -52,6 +55,8 @@ function DemoPageContent() {
       if (example) {
         setCode(example.code);
         compileCode(example.code);
+        setDurationInFrames(example.durationInFrames);
+        setFps(example.fps);
         router.replace(`/code-examples?example=${exampleId}`, {
           scroll: false,
         });
@@ -71,7 +76,8 @@ function DemoPageContent() {
   const categories = Array.from(new Set(examples.map((e) => e.category)));
 
   return (
-    <div className="h-screen w-screen bg-background flex flex-col [&_::-webkit-scrollbar]:w-1.5 [&_::-webkit-scrollbar-track]:bg-transparent [&_::-webkit-scrollbar-thumb]:bg-border [&_::-webkit-scrollbar-thumb]:rounded-full hover:[&_::-webkit-scrollbar-thumb]:bg-secondary">
+    <RenderingProvider>
+      <div className="h-screen w-screen bg-background flex flex-col [&_::-webkit-scrollbar]:w-1.5 [&_::-webkit-scrollbar-track]:bg-transparent [&_::-webkit-scrollbar-thumb]:bg-border [&_::-webkit-scrollbar-thumb]:rounded-full hover:[&_::-webkit-scrollbar-thumb]:bg-secondary">
       {/* Header with logo */}
       <header className="flex items-center gap-6 py-8 px-12 shrink-0">
         <div className="flex flex-col gap-2">
@@ -169,16 +175,20 @@ function DemoPageContent() {
             />
             <AnimationPlayer
               Component={Component}
-              durationInFrames={selectedExample.durationInFrames}
-              fps={selectedExample.fps}
+              durationInFrames={durationInFrames}
+              fps={fps}
+              onDurationChange={setDurationInFrames}
+              onFpsChange={setFps}
               isCompiling={isCompiling}
               isStreaming={false}
               error={error}
+              code={code}
             />
           </div>
         </div>
       </div>
     </div>
+    </RenderingProvider>
   );
 }
 

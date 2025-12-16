@@ -27,15 +27,8 @@ const makeRequest = async <Res>(
   return json.data;
 };
 
-export const renderVideo = async ({
-  id,
-  inputProps,
-}: {
-  id: string;
-  inputProps: z.infer<typeof CompositionProps>;
-}) => {
+export const renderVideo = async (inputProps: z.infer<typeof CompositionProps>) => {
   const body: z.infer<typeof RenderRequest> = {
-    id,
     inputProps,
   };
 

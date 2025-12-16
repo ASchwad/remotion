@@ -1,7 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Player, type ErrorFallback } from "@remotion/player";
+import { RenderControls } from "./RenderControls";
+import { SettingsModal } from "./SettingsModal";
+import { useRenderingContext } from "../context/RenderingContext";
 
 const renderErrorFallback: ErrorFallback = ({ error }) => {
   return (
@@ -22,21 +25,56 @@ interface AnimationPlayerProps {
   Component: React.ComponentType | null;
   durationInFrames: number;
   fps: number;
+  onDurationChange: (duration: number) => void;
+  onFpsChange: (fps: number) => void;
   isCompiling: boolean;
   isStreaming: boolean;
   error: string | null;
   errorType?: "compilation" | "api";
+  code: string;
 }
 
 export const AnimationPlayer: React.FC<AnimationPlayerProps> = ({
   Component,
-  durationInFrames,
-  fps,
+  durationInFrames: durationInFramesProp,
+  fps: fpsProp,
+  onDurationChange,
+  onFpsChange,
   isCompiling,
   isStreaming,
   error,
   errorType = "compilation",
+  code,
 }) => {
+  const { resetRenderingState } = useRenderingContext();
+
+  // Reset rendering state when code changes
+  useEffect(() => {
+    resetRenderingState();
+  }, [code, resetRenderingState]);
+
+  // Ensure we never pass NaN or invalid values to the Player
+  const durationInFrames = !Number.isFinite(durationInFramesProp) || durationInFramesProp < 1
+    ? 150
+    : Math.round(durationInFramesProp);
+  const fps = !Number.isFinite(fpsProp) || fpsProp < 1
+    ? 30
+    : Math.round(fpsProp);
+
+  // Wrap callbacks to ensure we never propagate invalid values
+  const handleDurationChange = (value: number) => {
+    if (!Number.isNaN(value) && value >= 1) {
+      onDurationChange(value);
+    }
+  };
+
+  const handleFpsChange = (value: number) => {
+    if (!Number.isNaN(value) && value >= 1) {
+      onFpsChange(value);
+    }
+  };
+
+  const canRender = Boolean(Component) && !isCompiling && !isStreaming && !error;
   if (isStreaming) {
     return (
       <div className="flex flex-3 flex-col items-center bg-background min-w-0">
@@ -114,7 +152,7 @@ export const AnimationPlayer: React.FC<AnimationPlayerProps> = ({
         <h2 className="text-sm font-medium text-muted-foreground mb-3">Video Preview</h2>
         <div className="w-full aspect-video rounded-lg overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)]">
           <Player
-            key={Component.toString()}
+            key={`${Component.toString()}-${durationInFrames}-${fps}`}
             component={Component}
             durationInFrames={durationInFrames}
             fps={fps}
@@ -131,6 +169,20 @@ export const AnimationPlayer: React.FC<AnimationPlayerProps> = ({
             errorFallback={renderErrorFallback}
             spaceKeyToPlayOrPause={false}
             clickToPlay={false}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-4">
+          <RenderControls
+            code={code}
+            durationInFrames={durationInFrames}
+            fps={fps}
+            disabled={!canRender}
+          />
+          <SettingsModal
+            durationInFrames={durationInFrames}
+            onDurationChange={handleDurationChange}
+            fps={fps}
+            onFpsChange={handleFpsChange}
           />
         </div>
       </div>

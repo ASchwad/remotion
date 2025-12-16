@@ -12,9 +12,9 @@ import {
   type StreamPhase,
   type PromptInputRef,
 } from "../../components/PromptInput";
-import { SettingsModal } from "../../components/SettingsModal";
 import { examples } from "../../templates";
 import { useAnimationState } from "../../hooks/useAnimationState";
+import { RenderingProvider } from "../../context/RenderingContext";
 
 function GeneratePageContent() {
   const searchParams = useSearchParams();
@@ -118,47 +118,42 @@ function GeneratePageContent() {
   }, [initialPrompt, hasAutoStarted]);
 
   return (
-    <PageLayout
-      showLogoAsLink
-      rightContent={
-        <SettingsModal
-          durationInFrames={durationInFrames}
-          onDurationChange={setDurationInFrames}
-          fps={fps}
-          onFpsChange={setFps}
-        />
-      }
-    >
-      <div className="flex-1 flex flex-col min-w-0 px-12 pb-8 gap-8 overflow-hidden">
-        <div className="flex-1 flex overflow-hidden gap-8">
-          <CodeEditor
-            code={hasGeneratedOnce ? code : ""}
-            onChange={handleCodeChange}
-            isStreaming={isStreaming}
-            streamPhase={streamPhase}
-          />
-          <AnimationPlayer
-            Component={Component}
-            durationInFrames={durationInFrames}
-            fps={fps}
-            isCompiling={isCompiling}
-            isStreaming={isStreaming}
-            error={apiError || error}
-            errorType={apiError ? "api" : "compilation"}
+    <RenderingProvider>
+      <PageLayout showLogoAsLink>
+        <div className="flex-1 flex flex-col min-w-0 px-12 pb-8 gap-8 overflow-hidden">
+          <div className="flex-1 flex overflow-hidden gap-8">
+            <CodeEditor
+              code={hasGeneratedOnce ? code : ""}
+              onChange={handleCodeChange}
+              isStreaming={isStreaming}
+              streamPhase={streamPhase}
+            />
+            <AnimationPlayer
+              Component={Component}
+              durationInFrames={durationInFrames}
+              fps={fps}
+              onDurationChange={setDurationInFrames}
+              onFpsChange={setFps}
+              isCompiling={isCompiling}
+              isStreaming={isStreaming}
+              error={apiError || error}
+              errorType={apiError ? "api" : "compilation"}
+              code={code}
+            />
+          </div>
+
+          <PromptInput
+            ref={promptInputRef}
+            onCodeGenerated={handleCodeChange}
+            onStreamingChange={handleStreamingChange}
+            onStreamPhaseChange={setStreamPhase}
+            onError={handleApiError}
+            prompt={prompt}
+            onPromptChange={setPrompt}
           />
         </div>
-
-        <PromptInput
-          ref={promptInputRef}
-          onCodeGenerated={handleCodeChange}
-          onStreamingChange={handleStreamingChange}
-          onStreamPhaseChange={setStreamPhase}
-          onError={handleApiError}
-          prompt={prompt}
-          onPromptChange={setPrompt}
-        />
-      </div>
-    </PageLayout>
+      </PageLayout>
+    </RenderingProvider>
   );
 }
 

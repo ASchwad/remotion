@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { useCallback, useMemo, useState } from "react";
 import { getProgress, renderVideo } from "../lambda/api";
 import { CompositionProps } from "../../types/constants";
 
@@ -27,47 +26,44 @@ export type State =
       status: "done";
     };
 
-const wait = async (milliSeconds: number) => {
-  await new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, milliSeconds);
-  });
-};
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export const useRendering = (
-  id: string,
-  inputProps: z.infer<typeof CompositionProps>,
-) => {
-  const [state, setState] = useState<State>({
-    status: "init",
-  });
+interface UseRenderingProps {
+  code: string;
+  durationInFrames: number;
+  fps: number;
+  setState: (state: State) => void;
+}
 
-  const renderMedia = useCallback(async () => {
-    setState({
-      status: "invoking",
-    });
+export const useRendering = ({
+  code,
+  durationInFrames,
+  fps,
+  setState,
+}: UseRenderingProps) => {
+  const renderMedia = async () => {
+    const inputProps: z.infer<typeof CompositionProps> = { code, durationInFrames, fps };
+    setState({ status: "invoking" });
+
     try {
-      const { renderId, bucketName } = await renderVideo({ id, inputProps });
+      const { renderId, bucketName } = await renderVideo(inputProps);
       setState({
         status: "rendering",
         progress: 0,
-        renderId: renderId,
-        bucketName: bucketName,
+        renderId,
+        bucketName,
       });
 
       let pending = true;
 
       while (pending) {
-        const result = await getProgress({
-          id: renderId,
-          bucketName: bucketName,
-        });
+        const result = await getProgress({ id: renderId, bucketName });
+
         switch (result.type) {
           case "error": {
             setState({
               status: "error",
-              renderId: renderId,
+              renderId,
               error: new Error(result.message),
             });
             pending = false;
@@ -85,11 +81,11 @@ export const useRendering = (
           case "progress": {
             setState({
               status: "rendering",
-              bucketName: bucketName,
+              bucketName,
               progress: result.progress,
-              renderId: renderId,
+              renderId,
             });
-            await wait(1000);
+            await wait(2000);
           }
         }
       }
@@ -100,17 +96,9 @@ export const useRendering = (
         renderId: null,
       });
     }
-  }, [id, inputProps]);
+  };
 
-  const undo = useCallback(() => {
-    setState({ status: "init" });
-  }, []);
+  const undo = () => setState({ status: "init" });
 
-  return useMemo(() => {
-    return {
-      renderMedia,
-      state,
-      undo,
-    };
-  }, [renderMedia, state, undo]);
+  return { renderMedia, undo };
 };
